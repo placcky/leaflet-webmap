@@ -1,1 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaflet Webmap</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <style>
+        #map {
+            height: 100vh; /* Térkép teljes képernyős magasságban */
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Térkép inicializálása
+        const map = L.map('map').setView([47.4979, 19.0402], 13); // Budapest koordinátái
 
+        // Alapréteg hozzáadása (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Marker hozzáadása
+        const marker = L.marker([47.4979, 19.0402]).addTo(map);
+        marker.bindPopup('<b>Budapest</b><br>Főváros Magyarországon.').openPopup();
+
+        // Kör (Circle) hozzáadása
+        const circle = L.circle([47.4979, 19.0302], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: 500
+        }).addTo(map);
+
+        // Poligon (Polygon) hozzáadása
+        const polygon = L.polygon([
+            [47.4999, 19.0402],
+            [47.4970, 19.0450],
+            [47.4950, 19.0370]
+        ]).addTo(map);
+
+        // Kattintási esemény kezelése
+        map.on('click', function(e) {
+            alert(`Koordináták: ${e.latlng.lat}, ${e.latlng.lng}`);
+        });
+    </script>
+</body>
+</html>
