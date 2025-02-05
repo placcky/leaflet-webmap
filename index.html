@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,167 +18,137 @@
         }
 
         .coordinate-box {
-        position: absolute;
-        bottom: 5px;
-        left: 5px;
-        background-color: rgba(255, 255, 255, 0.8);
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 8px;
-        font-family: Verdana, Tahoma, sans-serif;
-        font-size: 10px;
-        color: #333;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 8px;
+            font-family: Verdana, Tahoma, sans-serif;
+            font-size: 10px;
+            color: #333;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
         }
 
         .map-title {
-        position: absolute;
-        top: 10px; /* distance from the map top */
-        left: 50%; /* middle placing */
-        transform: translateX(-50%); /* exact placing in the middle */
-        background-color: rgba(255, 255, 255, 0.8);
-        padding: 10px;
-        font-family: Verdana, Tahoma, sans-serif;
-        font-size: 18px;
-        font-weight: bold;
-        color: #333;
-        border-radius: 5px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
+            position: absolute;
+            top: 10px; /* distance from the map top */
+            left: 50%; /* middle placing */
+            transform: translateX(-50%); /* exact placing in the middle */
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            font-family: Verdana, Tahoma, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            border-radius: 5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
         }
     </style>
 </head>
 
 <body>
-    <div id="map">
-        <div class="leaflet-control coordinate"></div>
-    </div>
-
+    <div id="map"></div>
     <!-- Add a title on top of the map -->
-    <div class="map-title">National Parks and Protected areas of Hungary</div>
-
+    <div class="map-title">National Parks and Protected Areas of Hungary</div>
     <div class="coordinate-box">
         lat: 0, lng: 0
     </div>    
-</body>
 
-</html>
-<!-- leaflet js -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="./data/hungary_protected.geojson"></script>
-<script src="./data/hungary_bound.geojson"></script>
-<script>
-    //Map initialization
-    var map = L.map('map').setView([47.16, 19.04], 8);
+    <!-- leaflet js -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="./data/hungary_protected.geojson"></script>
+    <script src="./data/hungary_bound.geojson"></script>
+    <script src="./data/hungary_nation.geojson"></script>
+
+    <script>
+        // Map initialization
+        var map = L.map('map').setView([47.16, 19.04], 7.5);
     
-    //Basemap landscape
-    var esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-    maxZoom: 16
-    }).addTo(map);
+        // Base map layers
+        var esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxZoom: 16
+        }).addTo(map);
+    
+        var mapy = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+            maxZoom: 16
+        }).addTo(map);
+    
+        // Scale bar
+        L.control.scale({
+            metric: true,
+            imperial: true,
+            maxWidth: 100,
+            position: 'bottomright'
+        }).addTo(map);
+    
+        // Variables for GeoJSON layers
+        var protecLayer, nationLayer;
+    
+        // Load GeoJSON layers asynchronously
+        Promise.all([
+            fetch('./data/hungary_protec.geojson').then(response => response.json()),
+            fetch('./data/hungary_nation.geojson').then(response => response.json())
+        ]).then(([protecData, nationData]) => {
+            // Protected Areas Layer
+            protecLayer = L.geoJSON(protecData, {
+                style: function (feature) {
+                    var boundary = feature.properties.boundary;
+                    var color = boundary === 'protected' ? '#00e6e6' : '#55e181';
+                    return { color: color, stroke: true, weight: 2, dashArray: '20, 5, 10, 5, 1, 5' };
+                },
+                onEachFeature: function (feature, layer) {
+            // Popup tartalom
+            var name = feature.properties.name || "N/A";
+            var area = feature.properties.area || "Unknown";
+            var website = feature.properties.website || "No webpage";
+            var protection = feature.properties.protection || "No data";
 
-    //Basemap Esri grey
-    var mapy = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
-	maxZoom: 16
-    }).addTo(map);
+            var popupContent = `
+                <b>Name:</b> ${name}<br>
+                <b>Area:</b> ${area} km²<br>
+                <b>Webpage:</b> <a href="${website}" target="_blank">${website}</a><br>
+                <b>Protection:</b> ${protection}<br>
+            `;
+            layer.bindPopup(popupContent);
 
-    /// Scale bar
-    L.control.scale({
-    metric: true,     // Metric system (kilometers, meters)
-    imperial: true,   // Imperial system (miles, feet)
-    maxWidth: 100,    // Maximum width of the scale control
-    position: 'bottomright'  // Position of the scale on the map
-}).addTo(map);
-
- //////////////////
- function highlightFeature(e) {
-    var layer = e.target;
-
-    // A kiválasztott terület stílusának módosítása
-    layer.setStyle({
-        weight: 4,         // A vonal vastagságának növelése
-        color: '#666',     // A vonal színének módosítása
-        dashArray: '',     // A vonal tördelése eltávolítása
-        fillOpacity: 0.7   // A kitöltés átlátszóságának csökkentése
-    });
-
-    // A terület előtérbe helyezése
-    layer.bringToFront();
-}
-// visszaállítás
-function resetHighlight(e) {
-    var layer = e.target;
-
-    // A réteghez tartozó szűrt stílus visszaállítása
-    var boundary = layer.feature.properties.boundary;  // A típus lekérése
-    var color = '#00e6e6';  // Alapértelmezett szín
-
-    // Szín kiválasztása a típus alapján
-    if (boundary === 'national_park') {
-        color = '#00e6e6';  // Zöld a national_park típusnak
-    } else if (boundary === 'protected_area') {
-        color = '#55e181';  // Kék a protected_area típusnak
-    }
-
-    // A szűrt stílus alkalmazása
-    layer.setStyle({
-        color: color,        // Szín alkalmazása
-        stroke: true,
-        weight: 2,
-        dashArray: '5, 5',   // A vonal tördelése
-        fillOpacity: 0.2     // Kitöltés átlátszósága
-    });
-}
-
-/////////////////////////////
-
-    //GEOJSON data added to the map, for some reason I cant load the good data to this map because LayerControl and coordinates wont work in that case  //
-    var data = L.geoJSON(protected, {
-    style: function (feature) {
-        var boundary = feature.properties.boundary;  // A típus lekérése
-        var color = '#00e6e6';  // Alapértelmezett szín
-
-        // Szín kiválasztása a típus alapján
-        if (boundary === 'national_park') {
-            color = '#00e6e6';  // Zöld a national_park típusnak
-        } else if (boundary === 'protected_area') {
-            color = '#55e181';  // Kék a protected_area típusnak
+            // Hover események
+            layer.on({ mouseover: highlightFeature, mouseout: resetHighlight });
         }
+    });
+    
+            // National Parks Layer
+            nationLayer = L.geoJSON(nationData, {
+                style: function (feature) {
+                    var boundary = feature.properties.boundary;
+                    var color = boundary === 'national_park' ? '#00e6e6' : '#55e181';
+                    return { color: color, stroke: true, weight: 2, dashArray: '20, 5, 10, 5, 1, 5' };
+                },
+                onEachFeature: function (feature, layer) {
+            // Popup tartalom
+            var name = feature.properties.name || "N/A";
+            var area = feature.properties.area || "Unknown";
+            var website = feature.properties.website || "No webpage";
+            var protection = feature.properties.protection || "No data";
 
-        return {
-            color: color,  // Szín alkalmazása
-            stroke: true,
-            weight: 2,
-            dashArray: '5, 5',
-        };
-    },
-    onEachFeature: function (feature, layer) {
-        // Ellenőrizzük, hogy a szükséges attribútumok léteznek-e
-        var name = feature.properties.name || "N/A";
-        var area = feature.properties.area || "Unknown";
-        var website = feature.properties.website || "No webpage";
-        var protection = feature.properties.protection || "No data";
+            var popupContent = `
+                <b>Name:</b> ${name}<br>
+                <b>Area:</b> ${area} km²<br>
+                <b>Webpage:</b> <a href="${website}" target="_blank">${website}</a><br>
+                <b>Protection:</b> ${protection}<br>
+            `;
+            layer.bindPopup(popupContent);
 
-        // HTML tartalom létrehozása a popuphoz
-        var popupContent = `
-            <b>Name:</b> ${name}<br>
-            <b>Area:</b> ${area} km²<br>
-            <b>Webpage:</b> <a href="${website}" target="_blank">${website}</a><br>
-            <b>Protection:</b> ${protection}<br>
-        `;
-// Popup hozzáadása 
-        layer.bindPopup(popupContent);
-
-        // Események hozzáadása a hover effekthez
-        layer.on({
-            mouseover: highlightFeature, // Az egér fölé viszésekor kiemeli a területet
-            mouseout: resetHighlight     // Az egér eltávolítása után visszaállítja az eredeti stílust
-        });
-    }
-}).addTo(map);
-
+            // Hover események
+            layer.on({ mouseover: highlightFeature, mouseout: resetHighlight });
+        }
+    });
+    
     // Hungary boundary layer adding 
     fetch('./data/hungary_bound.geojson')
     .then(response => response.json())
@@ -197,26 +166,58 @@ function resetHighlight(e) {
         }).addTo(map);
     })
  
-    var baseMaps = {
-    'Esri World Imagery': esri,
-    'Esri Grey': mapy,
-    };
+            // Add layers to map
+            protecLayer.addTo(map);
+            nationLayer.addTo(map);
+    
+            // Overlay maps (updated after loading geoJSON)
+            var overlayMaps = {
+                "Protected Areas": protecLayer,
+                "National Parks": nationLayer
+            };
+    
+            // Add Layer control after layers are available
+            L.control.layers({
+                'Esri World Imagery': esri,
+                'Esri Grey': mapy
+            }, overlayMaps).addTo(map);
+        });
+    
+        // Highlight feature style change on hover
+        function highlightFeature(e) {
+            var layer = e.target;
+            layer.setStyle({ weight: 4, color: '#666', dashArray: '', fillOpacity: 0.7 });
+            layer.bringToFront();
+        }
+    
+        // Reset feature style
+function resetHighlight(e) {
+    var layer = e.target;
+    var boundary = layer.feature.properties.boundary;  // A típus lekérése
+    var color = '#00e6e6';  // Alapértelmezett szín
 
-    var overlayMaps = {
-    "National Parks": data
-    }; 
+    // Szín kiválasztása a típus alapján
+    if (boundary === 'national_park') {
+        color = '#00e6e6';  // Zöld a national_park típusnak
+    } else if (boundary === 'protected_area') {
+        color = '#55e181';  // Kék a protected_area típusnak
+    }
 
-    //Layercontrol
-    var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map);
-
-// LEAFLET EVENTS
-
-var coordBox = document.querySelector('.coordinate-box');
-
-    // Update coordinates on mouse move
-    map.on('mousemove', function (e) {
-        coordBox.innerHTML = `<strong>lat:</strong> ${e.latlng.lat.toFixed(5)}, <strong>lng:</strong> ${e.latlng.lng.toFixed(5)}`;
+    // A szűrt stílus alkalmazása
+    layer.setStyle({
+        color: color,        // Szín alkalmazása
+        stroke: true,
+        weight: 2,
+        dashArray:'20, 5, 10, 5, 1, 5',   // A vonal tördelése
+        fillOpacity: 0.2     // Kitöltés átlátszósága
     });
-
-
-</script>
+}
+    
+        // Update coordinates on mouse move
+        var coordBox = document.querySelector('.coordinate-box');
+        map.on('mousemove', function (e) {
+            coordBox.innerHTML = `<strong>lat:</strong> ${e.latlng.lat.toFixed(5)}, <strong>lng:</strong> ${e.latlng.lng.toFixed(5)}`;
+        });
+    </script>    
+</body>
+</html>
